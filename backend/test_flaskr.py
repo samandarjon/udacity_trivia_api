@@ -27,81 +27,167 @@ class TriviaTestCase(unittest.TestCase):
             self.db.create_all()
 
     def tearDown(self):
-        """Executed after each test"""
+        """Executed after reach test"""
+        pass
+
+    """
+    Write at least one test for each test for successful operation and for
+    expected errors.
+    """
 
     def test_get_categories(self):
-        res = self.client().get('/categories')
-        self.assertEqual(res.status_code, 200)
+        response = self.client().get('/categories')
 
-        cats = res.json
-        self.assertTrue(cats['categories'])
-        self.assertTrue(cats['categories'][0])
-        self.assertTrue(cats['categories'][0]['id'])
-        self.assertTrue(cats['categories'][0]['type'])
-
-        with self.assertRaises(KeyError):
-            var = cats['categories'][0]['name']
-
-        with self.assertRaises(IndexError):
-            var = cats['categories'][1000000]
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('categories', json.loads(response.data))
 
     def test_get_questions(self):
-        res = self.client().get('/questions')
-        self.assertEqual(res.status_code, 200)
+        response = self.client().get('/questions')
 
-        q = res.json
-        self.assertIsNotNone(q)
-        self.assertGreater(q.__len__(), 0)
+        reply = json.loads(response.data)
 
-        self.assertIn('questions', q)
-        self.assertIn('total_questions', q)
-        self.assertIn('categories', q)
-        self.assertIn('current_category', q)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(reply['questions']), 10)
 
-        with self.assertRaises(KeyError):
-            var = q['blah']
+        self.assertIn('total_questions', reply)
+        self.assertIn('categories', reply)
+        self.assertIn('current_category', reply)
 
-        with self.assertRaises(KeyError):
-            var = q[1000000]
+    def test_404_get_questions(self):
+        response = self.client().get('/questions?page=900000')
 
-    def test_add_question(self):
-        q = {
-            'question': 'q1',
-            'answer': 'a1',
-            'difficulty': '1',
-            'category': 1
+        reply = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(reply['success'], False)
+        self.assertEqual(reply['error'], 404)
+        self.assertEqual(reply['message'], 'resource not found')
+
+    def test_delete_questions(self):
+        response = self.client().get('/questions')
+
+        questions = json.loads(response.data)
+        question_id = questions['questions'][0]['id']
+
+        response = self.client().delete('/questions/' + str(question_id))
+
+        reply = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(reply['success'], True)
+        self.assertEqual(reply['deleted'], question_id)
+
+    def test_404_delete_questions(self):
+        response = self.client().delete('/questions/99999999')
+
+        reply = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(reply['success'], False)
+        self.assertEqual(reply['error'], 404)
+        self.assertEqual(reply['message'], 'resource not found')
+
+    def test_post_questions(self):
+        question = {
+            'question': 'What is 1 + 2?',
+            'answer': 3,
+            'category': 1,
+            'difficulty': 1
         }
+        response = self.client().post('/questions', json=question)
 
-        res = self.client().post('/add-questions', json=q)
-        self.assertTrue(res.status_code, 200)
+        reply = json.loads(response.data)
 
-        data = json.loads(res.data)
-        self.assertTrue(data['success'])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(reply['success'], True)
 
-    def test_delete_question_by_id(self):
-        questions = self.client().get('/questions')
+    def test_422_post_questions(self):
+        response = self.client().post('/questions')
 
-        data = json.loads(questions.data)
+        reply = json.loads(response.data)
 
-        original_length = len(questions.json)
-        self.assertGreater(original_length, 0)
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(reply['success'], False)
+        self.assertEqual(reply['error'], 422)
+        self.assertEqual(reply['message'], 'Unprocessable')
 
-        id_to_delete = data['questions'][original_length]['id']
-        questions_deleted = self.client().delete('/questions/' +
-                                                 str(id_to_delete))
-
-        new_length = len(questions_deleted.json)
-        self.assertGreater(original_length, new_length)
-
-    def test_search_questions(self):
-        search_term = {
-            'searchTerm': 'e'
+    def test_post_search_questions(self):
+        search = {
+            'searchTerm': 'title'
         }
-        res = self.client().post('/search-questions', json=search_term)
-        self.assertEqual(res.status_code, 200)
-        data = json.loads(res.data)
-        self.assertGreater(len(data), 0)
+        response = self.client().post('/questions/search', json=search)
+
+        reply = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(reply['success'], True)
+
+        self.assertIn('questions', reply)
+        self.assertIn('total_questions', reply)
+        self.assertIn('current_category', reply)
+
+    def test_404_post_search_questions(self):
+        response = self.client().post('/questions/search')
+
+        reply = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(reply['success'], False)
+        self.assertEqual(reply['error'], 404)
+        self.assertEqual(reply['message'], 'resource not found')
+
+    def test_get_questions_by_category(self):
+        response = self.client().get('/categories/1/questions')
+
+        reply = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 200)
+
+        self.assertIn('questions', reply)
+        self.assertIn('total_questions', reply)
+        self.assertIn('current_category', reply)
+
+    def test_404_get_questions_by_category(self):
+        response = self.client().get('/categories/9999999999999/questions')
+
+        reply = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 404)
+
+        self.assertEqual(reply['success'], False)
+        self.assertEqual(reply['error'], 404)
+        self.assertEqual(reply['message'], 'resource not found')
+
+    def test_post_quiz_question(self):
+        quiz = {
+            'previous_questions': [],
+            'quiz_category': {
+                'id': 1,
+                'type': 'Science'
+            }
+        }
+        response = self.client().post('/quizzes', json=quiz)
+
+        reply = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 200)
+
+        self.assertIn('id', reply)
+        self.assertIn('question', reply)
+        self.assertIn('answer', reply)
+
+    def test_404_post_quiz_question(self):
+        response = self.client().post('/quizzes', json={})
+
+        reply = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 404)
+
+        self.assertEqual(reply['success'], False)
+        self.assertEqual(reply['error'], 404)
+        self.assertEqual(reply['message'], 'resource not found')
 
 
+# Make the tests conveniently executable
 if __name__ == "__main__":
     unittest.main()
