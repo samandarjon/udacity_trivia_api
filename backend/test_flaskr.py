@@ -54,7 +54,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertIn('current_category', reply)
 
     def test_404_get_questions(self):
-        response = self.client().get('/questions?page=100')
+        response = self.client().get('/questions?page=100000')
 
         reply = json.loads(response.data)
 
@@ -171,7 +171,6 @@ class TriviaTestCase(unittest.TestCase):
         reply = json.loads(response.data)
 
         self.assertEqual(response.status_code, 200)
-        print(reply)
         self.assertIn('id', reply['question'])
         self.assertIn('question', reply["question"])
         self.assertIn('answer', reply['question'])
