@@ -5,7 +5,8 @@ db_name = "db_trivia"
 db_user = "postgres"
 db_password = "smndr2013"
 host = "localhost:5432"
-database_path = "postgres://{}:{}@{}/{}".format(db_user, db_password, host, db_name)
+database_path = "postgres://{}:{}@{}/{}".format(
+    db_user, db_password, host, db_name)
 db = SQLAlchemy()
 
 '''
@@ -21,12 +22,6 @@ def setup_db(app, database_path=database_path):
     db.app = app
     db.init_app(app)
     db.create_all()
-
-
-'''
-Question
-
-'''
 
 
 class Question(db.Model):
@@ -63,12 +58,6 @@ class Question(db.Model):
             'category': self.category,
             'difficulty': self.difficulty
         }
-
-
-'''
-Category
-
-'''
 
 
 class Category(db.Model):
