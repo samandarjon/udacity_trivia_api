@@ -47,14 +47,14 @@ class TriviaTestCase(unittest.TestCase):
         reply = json.loads(response.data)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(reply['questions']), 10)
+        self.assertLessEqual(len(reply['questions']), 10)
 
         self.assertIn('total_questions', reply)
         self.assertIn('categories', reply)
         self.assertIn('current_category', reply)
 
     def test_404_get_questions(self):
-        response = self.client().get('/questions?page=900000')
+        response = self.client().get('/questions?page=100')
 
         reply = json.loads(response.data)
 
@@ -148,7 +148,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertIn('current_category', reply)
 
     def test_404_get_questions_by_category(self):
-        response = self.client().get('/categories/9999999999999/questions')
+        response = self.client().get('/categories/99999/questions')
 
         reply = json.loads(response.data)
 
@@ -171,10 +171,10 @@ class TriviaTestCase(unittest.TestCase):
         reply = json.loads(response.data)
 
         self.assertEqual(response.status_code, 200)
-
-        self.assertIn('id', reply)
-        self.assertIn('question', reply)
-        self.assertIn('answer', reply)
+        print(reply)
+        self.assertIn('id', reply['question'])
+        self.assertIn('question', reply["question"])
+        self.assertIn('answer', reply['question'])
 
     def test_404_post_quiz_question(self):
         response = self.client().post('/quizzes', json={})
